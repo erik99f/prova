@@ -88,20 +88,32 @@ else:
     # Sidebar per l'input utente dinamico basato sulle colonne del dataset
     st.sidebar.header("🔍 Simula un Cliente")
     
+    # Sidebar per l'input utente dinamico e pulito
+    st.sidebar.header("🔍 Simula un Cliente")
+    
     def user_input_features():
         data = {}
-        # Leggiamo il dataset originale per estrarre valori unici o range sensati
         original_train = pd.read_csv("data/train_data.csv")
         target_column = 'Churn' if 'Churn' in original_train.columns else original_train.columns[-1]
         original_train = original_train.drop(columns=[target_column])
         
+        # Colonne da ignorare completamente nella sidebar (ID o codici univoci)
+        ignore_cols = [col for col in original_train.columns if 'id' in col.lower()]
+        
         for col in feature_columns:
+            if col in ignore_cols:
+                continue  # Salta i campi ID
+                
             if col in original_train.select_dtypes(include=['int64', 'float64']).columns:
                 min_val = float(original_train[col].min())
                 max_val = float(original_train[col].max())
                 mean_val = float(original_train[col].mean())
-                # Se il range è piccolo o intero usiamo slider numerici
-                data[col] = st.sidebar.slider(f"{col}", min_val, max_val, mean_val)
+                
+                # Se i dati originali sono interi (es. Età, Chiamate), usiamo step=1 e valori interi
+                if original_train[col].dropna().apply(lambda x: x.is_integer()).all():
+                    data[col] = st.sidebar.slider(f"{col}", int(min_val), int(max_val), int(mean_val), step=1)
+                else:
+                    data[col] = st.sidebar.slider(f"{col}", min_val, max_val, mean_val)
             else:
                 unique_vals = original_train[col].dropna().unique().tolist()
                 data[col] = st.sidebar.selectbox(f"{col}", unique_vals)
