@@ -73,7 +73,10 @@ def get_trained_pipeline():
     
     model = Pipeline(steps=[
         ('preprocessor', preprocessor),
-        ('classifier', LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42))
+        ('classifier', RandomForestClassifier(
+        n_estimators=100, 
+        class_weight='balanced', 
+        random_state=42))
     ])
     
     model.fit(X_train, y_train)
