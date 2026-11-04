@@ -24,6 +24,8 @@ Questa applicazione analizza il rischio di abbandono (churn) dei clienti basando
 
 # Funzione per addestrare al volo il modello leggero usando i dati di training
 @st.cache_resource
+# Funzione per addestrare al volo il modello leggero usando i dati di training
+@st.cache_resource
 def get_trained_pipeline():
     train_path = "data/train_data.csv"
     if not os.path.exists(train_path):
@@ -39,10 +41,24 @@ def get_trained_pipeline():
     numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
     categorical_features = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
     
+    from sklearn.impute import SimpleImputer
+    
+    # Trasformatore per colonne numeriche: riempie i NaN con la media e scala
+    numeric_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler())
+    ])
+    
+    # Trasformatore per colonne categoriche: riempie i NaN con la moda e applica OneHot
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+    
     preprocessor = ColumnTransformer(
         transformers=[
-            ('num', StandardScaler(), numeric_features),
-            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+            ('num', numeric_transformer, numeric_features),
+            ('cat', categorical_transformer, categorical_features)
         ]
     )
     
@@ -54,7 +70,6 @@ def get_trained_pipeline():
     
     model.fit(X_train, y_train)
     return model
-
 pipeline = get_trained_pipeline()
 
 if pipeline is None:
