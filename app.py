@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # Titolo principale
-st.title("📊 Customer Churn Prediction Dashboard")
+st.title("Customer Churn Prediction Dashboard")
 st.markdown("""
 Questa applicazione analizza il rischio di abbandono (churn) dei clienti basandosi sui dati storici. 
 *Nota sui dati:* Trattandosi di un dataset con segnali complessi e rumorosi, il modello riflette le sfide tipiche dei benchmark di settore, offrendo una base solida per l'analisi esplorativa e la simulazione.
@@ -87,7 +87,7 @@ else:
     st.success("✅ Modello addestrato e caricato con successo!")
 
     # Sidebar per l'input utente dinamico e pulito
-    st.sidebar.header("🔍 Simula un Cliente")
+    st.sidebar.header("Simula un Cliente")
     
     def user_input_features():
         data = {}
@@ -123,10 +123,10 @@ else:
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.subheader("📋 Parametri Cliente Selezionati")
+        st.subheader("Parametri Cliente Selezionati")
         st.dataframe(input_df, use_container_width=True)
 
-        if st.button("🚀 Predici Rischio Churn", type="primary"):
+        if st.button("Predici Rischio Churn", type="primary"):
             prediction = pipeline.predict(input_df)
             prediction_proba = pipeline.predict_proba(input_df)
             
@@ -134,10 +134,10 @@ else:
             if prediction[0] == 1:
                 st.error(f"⚠️ **Alto Rischio di Churn!** (Probabilità: {prediction_proba[0][1]*100:.1f}%)")
             else:
-                st.success(f"✅ **Cliente Stabile / Fedele** (Probabilità Churn: {prediction_proba[0][1]*100:.1f}%)")
+                st.success(f"**Cliente Stabile / Fedele** (Probabilità Churn: {prediction_proba[0][1]*100:.1f}%)")
 
     with col2:
-        st.subheader("💡 Informazioni sul Progetto")
+        st.subheader("Informazioni sul Progetto")
         st.info("""
 - **Tech Stack:** Python, Scikit-learn, Streamlit.
 - **Deployment:** GitHub & Streamlit Community Cloud.
@@ -146,7 +146,7 @@ else:
 
     # Sezione Dataset di Test
     st.markdown("---")
-    st.subheader("📂 Visualizzazione rapida dataset di test")
+    st.subheader("Visualizzazione rapida dataset di test")
     test_path = "data/test_data.csv" if os.path.exists("data/test_data.csv") else "test_data.csv"
     if os.path.exists(test_path):
         test_preview = pd.read_csv(test_path)
