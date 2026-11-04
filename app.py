@@ -26,10 +26,21 @@ Questa applicazione analizza il rischio di abbandono (churn) dei clienti basando
 # Funzione per addestrare al volo il modello e restituire le strutture dati
 @st.cache_resource
 def get_trained_pipeline():
-    train_path = "data/train_data.csv"
-    if not os.path.exists(train_path):
+    # Controlla percorsi alternativi in base a dove si trova l'app su Streamlit Cloud
+    possible_paths = ["data/train_data.csv", "train_data.csv", "./data/train_data.csv"]
+    train_path = None
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            train_path = path
+            break
+            
+    if train_path is None:
+        st.error("⚠️ Attenzione: Nessun file di training trovato nei percorsi attesi.")
         return None, None, None
     
+    train_df = pd.read_csv(train_path)
+    # ... resto del codice ...
     train_df = pd.read_csv(train_path)
     
     # Identifica la colonna target
