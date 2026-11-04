@@ -23,24 +23,21 @@ Questa applicazione analizza il rischio di abbandono (churn) dei clienti basando
 *Nota sui dati:* Trattandosi di un dataset con segnali complessi e rumorosi, il modello riflette le sfide tipiche dei benchmark di settore, offrendo una base solida per l'analisi esplorativa e la simulazione.
 """)
 
+# Funzione robusta per trovare il dataset di training indipendentemente dal percorso
+def find_train_file():
+    possible_paths = ["data/train_data.csv", "train_data.csv", "./data/train_data.csv"]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
 # Funzione per addestrare al volo il modello e restituire le strutture dati
 @st.cache_resource
 def get_trained_pipeline():
-    # Controlla percorsi alternativi in base a dove si trova l'app su Streamlit Cloud
-    possible_paths = ["data/train_data.csv", "train_data.csv", "./data/train_data.csv"]
-    train_path = None
-    
-    for path in possible_paths:
-        if os.path.exists(path):
-            train_path = path
-            break
-            
+    train_path = find_train_file()
     if train_path is None:
-        st.error("⚠️ Attenzione: Nessun file di training trovato nei percorsi attesi.")
         return None, None, None
     
-    train_df = pd.read_csv(train_path)
-    # ... resto del codice ...
     train_df = pd.read_csv(train_path)
     
     # Identifica la colonna target
@@ -81,35 +78,33 @@ def get_trained_pipeline():
 pipeline, feature_columns, train_df = get_trained_pipeline()
 
 if pipeline is None:
-    st.error("⚠️ Attenzione: Impossibile trovare il file `data/train_data.csv` per addestrare il modello al volo.")
+    st.error("⚠️ Attenzione: Impossibile trovare il file `train_data.csv` in nessun percorso conosciuto.")
 else:
     st.success("✅ Modello addestrato e caricato con successo!")
 
-    # Sidebar per l'input utente dinamico basato sulle colonne del dataset
-    st.sidebar.header("🔍 Simula un Cliente")
-    
-    # Sidebar per l'input utente dinamico e pulito
+    # Sidebar per l'input utente dinamico, pulito e senza ID o float indesiderati
     st.sidebar.header("🔍 Simula un Cliente")
     
     def user_input_features():
         data = {}
-        original_train = pd.read_csv("data/train_data.csv")
+        train_path = find_train_file()
+        original_train = pd.read_csv(train_path)
         target_column = 'Churn' if 'Churn' in original_train.columns else original_train.columns[-1]
         original_train = original_train.drop(columns=[target_column])
         
-        # Colonne da ignorare completamente nella sidebar (ID o codici univoci)
+        # Esclude le colonne ID o simili
         ignore_cols = [col for col in original_train.columns if 'id' in col.lower()]
         
         for col in feature_columns:
             if col in ignore_cols:
-                continue  # Salta i campi ID
+                continue
                 
             if col in original_train.select_dtypes(include=['int64', 'float64']).columns:
                 min_val = float(original_train[col].min())
                 max_val = float(original_train[col].max())
                 mean_val = float(original_train[col].mean())
                 
-                # Se i dati originali sono interi (es. Età, Chiamate), usiamo step=1 e valori interi
+                # Gestione pulita dei numeri interi (es. Età, chiamate)
                 if original_train[col].dropna().apply(lambda x: x.is_integer()).all():
                     data[col] = st.sidebar.slider(f"{col}", int(min_val), int(max_val), int(mean_val), step=1)
                 else:
@@ -150,8 +145,9 @@ else:
     # Sezione Dataset di Test
     st.markdown("---")
     st.subheader("📂 Visualizzazione rapida dataset di test")
-    if os.path.exists("data/test_data.csv"):
-        test_preview = pd.read_csv("data/test_data.csv")
+    test_path = "data/test_data.csv" if os.path.exists("data/test_data.csv") else "test_data.csv"
+    if os.path.exists(test_path):
+        test_preview = pd.read_csv(test_path)
         st.dataframe(test_preview.head(10), use_container_width=True)
     else:
-        st.warning("File `test_data.csv` non trovato nella cartella data/.")
+        st.warning("File di test non trovato.")
