@@ -1,8 +1,12 @@
 # %% [Streamlit App]
 import streamlit as st
 import pandas as pd
-import joblib
+import numpy as np
 import os
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.linear_model import LogisticRegression
 
 # Configurazione della pagina
 st.set_page_config(
@@ -18,20 +22,45 @@ Questa applicazione analizza il rischio di abbandono (churn) dei clienti basando
 *Nota sui dati:* Trattandosi di un dataset con segnali complessi e rumorosi, il modello riflette le sfide tipiche dei benchmark di settore, offrendo una base solida per l'analisi esplorativa e la simulazione.
 """)
 
-# Caricamento del modello salvato
+# Funzione per addestrare al volo il modello leggero usando i dati di training
 @st.cache_resource
-def load_model():
-    model_path = "model/classifier.joblib"
-    if os.path.exists(model_path):
-        return joblib.load(model_path)
-    return None
+def get_trained_pipeline():
+    train_path = "data/train_data.csv"
+    if not os.path.exists(train_path):
+        return None
+    
+    train_df = pd.read_csv(train_path)
+    
+    # Assumiamo che la colonna target si chiami 'Churn' e le feature siano le stesse
+    target_column = 'Churn' if 'Churn' in train_df.columns else train_df.columns[-1]
+    X_train = train_df.drop(columns=[target_column])
+    y_train = train_df[target_column]
+    
+    numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    categorical_features = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', StandardScaler(), numeric_features),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+        ]
+    )
+    
+    # Usiamo la Logistic Regression per mantenere il modello leggerissimo ed efficiente
+    model = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42))
+    ])
+    
+    model.fit(X_train, y_train)
+    return model
 
-pipeline = load_model()
+pipeline = get_trained_pipeline()
 
 if pipeline is None:
-    st.error("⚠️ Attenzione: Modello non trovato in `model/classifier.joblib`. Esegui prima lo script di training (`training.py`).")
+    st.error("⚠️ Attenzione: Impossibile trovare il file `data/train_data.csv` per addestrare il modello al volo.")
 else:
-    st.success("✅ Modello caricato con successo!")
+    st.success("✅ Modello addestrato e caricato con successo!")
 
     # Sidebar per l'input utente (Simulazione singolo cliente)
     st.sidebar.header("🔍 Simula un Cliente")
@@ -83,9 +112,9 @@ else:
     with col2:
         st.subheader("💡 Informazioni sul Progetto")
         st.info("""
-        - **Tech Stack:** Python, Scikit-learn, Streamlit.
-        - **Deployment:** Pronto per GitHub & Streamlit Community Cloud.
-        - **Focus:** Pipeline ML riproducibile e pulita.
+- **Tech Stack:** Python, Scikit-learn, Streamlit.
+- **Deployment:** GitHub & Streamlit Community Cloud.
+- **Focus:** Pipeline ML dinamica e riproducibile.
         """)
 
     # Sezione Dataset di Test
