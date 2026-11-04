@@ -24,8 +24,6 @@ Questa applicazione analizza il rischio di abbandono (churn) dei clienti basando
 
 # Funzione per addestrare al volo il modello leggero usando i dati di training
 @st.cache_resource
-# Funzione per addestrare al volo il modello leggero usando i dati di training
-@st.cache_resource
 def get_trained_pipeline():
     train_path = "data/train_data.csv"
     if not os.path.exists(train_path):
@@ -33,8 +31,12 @@ def get_trained_pipeline():
     
     train_df = pd.read_csv(train_path)
     
-    # Assumiamo che la colonna target si chiami 'Churn' e le feature siano le stesse
+    # Identifica la colonna target
     target_column = 'Churn' if 'Churn' in train_df.columns else train_df.columns[-1]
+    
+    # Rimuove le righe dove il target è NaN per evitare errori di validazione
+    train_df = train_df.dropna(subset=[target_column])
+    
     X_train = train_df.drop(columns=[target_column])
     y_train = train_df[target_column]
     
@@ -43,13 +45,11 @@ def get_trained_pipeline():
     
     from sklearn.impute import SimpleImputer
     
-    # Trasformatore per colonne numeriche: riempie i NaN con la media e scala
     numeric_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='mean')),
         ('scaler', StandardScaler())
     ])
     
-    # Trasformatore per colonne categoriche: riempie i NaN con la moda e applica OneHot
     categorical_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='most_frequent')),
         ('onehot', OneHotEncoder(handle_unknown='ignore'))
@@ -62,7 +62,6 @@ def get_trained_pipeline():
         ]
     )
     
-    # Usiamo la Logistic Regression per mantenere il modello leggerissimo ed efficiente
     model = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('classifier', LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42))
