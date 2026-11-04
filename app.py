@@ -6,6 +6,7 @@ import os
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 
 # Configurazione della pagina
@@ -22,19 +23,17 @@ Questa applicazione analizza il rischio di abbandono (churn) dei clienti basando
 *Nota sui dati:* Trattandosi di un dataset con segnali complessi e rumorosi, il modello riflette le sfide tipiche dei benchmark di settore, offrendo una base solida per l'analisi esplorativa e la simulazione.
 """)
 
-# Funzione per addestrare al volo il modello leggero usando i dati di training
+# Funzione per addestrare al volo il modello e restituire le strutture dati
 @st.cache_resource
 def get_trained_pipeline():
     train_path = "data/train_data.csv"
     if not os.path.exists(train_path):
-        return None
+        return None, None, None
     
     train_df = pd.read_csv(train_path)
     
     # Identifica la colonna target
     target_column = 'Churn' if 'Churn' in train_df.columns else train_df.columns[-1]
-    
-    # Rimuove le righe dove il target è NaN per evitare errori di validazione
     train_df = train_df.dropna(subset=[target_column])
     
     X_train = train_df.drop(columns=[target_column])
@@ -42,8 +41,6 @@ def get_trained_pipeline():
     
     numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
     categorical_features = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
-    
-    from sklearn.impute import SimpleImputer
     
     numeric_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='mean')),
@@ -68,41 +65,37 @@ def get_trained_pipeline():
     ])
     
     model.fit(X_train, y_train)
-    return model
-pipeline = get_trained_pipeline()
+    return model, X_train.columns.tolist(), train_df
+
+pipeline, feature_columns, train_df = get_trained_pipeline()
 
 if pipeline is None:
     st.error("⚠️ Attenzione: Impossibile trovare il file `data/train_data.csv` per addestrare il modello al volo.")
 else:
     st.success("✅ Modello addestrato e caricato con successo!")
 
-    # Sidebar per l'input utente (Simulazione singolo cliente)
+    # Sidebar per l'input utente dinamico basato sulle colonne del dataset
     st.sidebar.header("🔍 Simula un Cliente")
     
     def user_input_features():
-        age = st.sidebar.slider("Età (Age)", 18, 70, 35)
-        tenure = st.sidebar.slider("Anzianità contratto (Tenure - mesi)", 1, 60, 12)
-        usage_freq = st.sidebar.slider("Frequenza di Utilizzo", 1, 30, 10)
-        support_calls = st.sidebar.slider("Chiamate di Supporto", 0, 10, 2)
-        payment_delay = st.sidebar.slider("Ritardo Pagamenti (giorni)", 0, 30, 5)
-        total_spend = st.sidebar.number_input("Spesa Totale ($)", 100.0, 5000.0, 500.0)
+        data = {}
+        # Leggiamo il dataset originale per estrarre valori unici o range sensati
+        original_train = pd.read_csv("data/train_data.csv")
+        target_column = 'Churn' if 'Churn' in original_train.columns else original_train.columns[-1]
+        original_train = original_train.drop(columns=[target_column])
         
-        gender = st.sidebar.selectbox("Genere", ["Male", "Female"])
-        sub_type = st.sidebar.selectbox("Tipo Abbonamento", ["Basic", "Standard", "Premium"])
-        contract_length = st.sidebar.selectbox("Durata Contratto", ["Monthly", "Quarterly", "Annual"])
-        
-        data = {
-            "Age": age,
-            "Tenure": tenure,
-            "Usage Frequency": usage_freq,
-            "Support Calls": support_calls,
-            "Payment Delay": payment_delay,
-            "Total Spend": total_spend,
-            "Gender": gender,
-            "Subscription Type": sub_type,
-            "Contract Length": contract_length
-        }
-        return pd.DataFrame(data, index=[0])
+        for col in feature_columns:
+            if col in original_train.select_dtypes(include=['int64', 'float64']).columns:
+                min_val = float(original_train[col].min())
+                max_val = float(original_train[col].max())
+                mean_val = float(original_train[col].mean())
+                # Se il range è piccolo o intero usiamo slider numerici
+                data[col] = st.sidebar.slider(f"{col}", min_val, max_val, mean_val)
+            else:
+                unique_vals = original_train[col].dropna().unique().tolist()
+                data[col] = st.sidebar.selectbox(f"{col}", unique_vals)
+                
+        return pd.DataFrame([data])
 
     input_df = user_input_features()
 
