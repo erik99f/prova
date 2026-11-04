@@ -23,7 +23,7 @@ Questa applicazione analizza il rischio di abbandono (churn) dei clienti basando
 *Nota sui dati:* Trattandosi di un dataset con segnali complessi e rumorosi, il modello riflette le sfide tipiche dei benchmark di settore, offrendo una base solida per l'analisi esplorativa e la simulazione.
 """)
 
-# Funzione robusta per trovare il dataset di training indipendentemente dal percorso
+# Funzione robusta per trovare il dataset di training
 def find_train_file():
     possible_paths = ["data/train_data.csv", "train_data.csv", "./data/train_data.csv"]
     for path in possible_paths:
@@ -31,7 +31,7 @@ def find_train_file():
             return path
     return None
 
-# Funzione per addestrare al volo il modello e restituire le strutture dati
+# Funzione per addestrare al volo il modello escludendo a monte gli ID
 @st.cache_resource
 def get_trained_pipeline():
     train_path = find_train_file()
@@ -46,6 +46,10 @@ def get_trained_pipeline():
     
     X_train = train_df.drop(columns=[target_column])
     y_train = train_df[target_column]
+    
+    # Rimuoviamo preventivamente qualsiasi colonna ID dalle feature di training
+    id_cols = [col for col in X_train.columns if 'id' in col.lower()]
+    X_train = X_train.drop(columns=id_cols)
     
     numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
     categorical_features = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
@@ -82,7 +86,7 @@ if pipeline is None:
 else:
     st.success("✅ Modello addestrato e caricato con successo!")
 
-    # Sidebar per l'input utente dinamico, pulito e senza ID o float indesiderati
+    # Sidebar per l'input utente dinamico e pulito
     st.sidebar.header("🔍 Simula un Cliente")
     
     def user_input_features():
@@ -92,13 +96,11 @@ else:
         target_column = 'Churn' if 'Churn' in original_train.columns else original_train.columns[-1]
         original_train = original_train.drop(columns=[target_column])
         
-        # Esclude le colonne ID o simili
-        ignore_cols = [col for col in original_train.columns if 'id' in col.lower()]
+        # Rimuove gli ID anche qui per coerenza
+        id_cols = [col for col in original_train.columns if 'id' in col.lower()]
+        original_train = original_train.drop(columns=id_cols)
         
         for col in feature_columns:
-            if col in ignore_cols:
-                continue
-                
             if col in original_train.select_dtypes(include=['int64', 'float64']).columns:
                 min_val = float(original_train[col].min())
                 max_val = float(original_train[col].max())
