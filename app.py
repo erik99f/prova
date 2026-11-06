@@ -11,13 +11,13 @@ from sklearn.ensemble import RandomForestClassifier
 
 # Configurazione della pagina
 st.set_page_config(
-    page_title="Customer Churn Prediction App",
+    page_title="Kuepin",
     page_icon="📊",
     layout="wide"
 )
 
 # Titolo principale
-st.title("Customer Churn Prediction Dashboard")
+st.title("Kuepin")
 st.markdown("""
 Questa applicazione analizza il rischio di abbandono (churn) dei clienti basandosi sui dati storici. 
 *Nota sui dati:* Trattandosi di un dataset con segnali complessi e rumorosi, il modello riflette le sfide tipiche dei benchmark di settore, offrendo una base solida per l'analisi esplorativa e la simulazione.
