@@ -31,7 +31,7 @@ def find_train_file():
             return path
     return None
 
-# Funzione per addestrare al volo il modello escludendo a monte gli ID
+# Addestramento modello
 @st.cache_resource
 def get_trained_pipeline():
     train_path = find_train_file()
@@ -41,7 +41,7 @@ def get_trained_pipeline():
     train_df = pd.read_csv(train_path)
     
     # Identifica la colonna target
-    target_column = 'Churn' if 'Churn' in train_df.columns else train_df.columns[-1]
+    target_column = 'Churn'
     train_df = train_df.dropna(subset=[target_column])
     
     X_train = train_df.drop(columns=[target_column])
