@@ -153,10 +153,20 @@ else:
     
     # Poiché l'OneHotEncoder cambia le colonne, ricaviamo i nomi delle feature trasformate
     # (funziona con le versioni recenti di scikit-learn)
+    # Estraiamo le feature trasformate dal preprocessor
     try:
-        feature_names = preprocessor.get_feature_names_out()
+        raw_feature_names = preprocessor.get_feature_names_out()
     except AttributeError:
-        feature_names = [f"feature_{i}" for i in range(X_input_transformed.shape[1])]
+        raw_feature_names = [f"feature_{i}" for i in range(X_input_transformed.shape[1])]
+
+    # --- PULIZIA DEI NOMI DELLE FEATURE ---
+    clean_feature_names = []
+    for name in raw_feature_names:
+        # Rimuoviamo i prefissi più comuni generati da scikit-learn
+        cleaned = name.replace("num__", "").replace("cat__", "")
+        # Se vuoi pulire anche i valori delle variabili categoriche (es. "Contract Length_Monthly" -> "Contract Length: Monthly")
+        cleaned = cleaned.replace("_", ": ")
+        clean_feature_names.append(cleaned)
 
     # Inizializziamo l'explainer SHAP per alberi
     explainer = shap.TreeExplainer(model_clf)
