@@ -140,3 +140,15 @@ pipeline.fit(X_train, y_train)
 y_pred = pipeline.predict(X_test)
 print("--- REPORT CON LOGISTIC REGRESSION ---")
 print(classification_report(y_test, y_pred))
+
+# %%
+from sklearn.linear_model import LogisticRegression
+import joblib
+
+# Addestriamo una Logistic Regression (pesa pochissimi KB)
+pipeline.set_params(classifier=LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42))
+pipeline.fit(X_train, y_train)
+
+# Salviamo il file compatto
+joblib.dump(pipeline, "model/classifier.joblib")
+# %%

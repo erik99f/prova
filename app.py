@@ -110,7 +110,7 @@ else:
                 min_val = float(original_train[col].min())
                 max_val = float(original_train[col].max())
                 mean_val = float(original_train[col].mean())
-                
+
                 # Se è una colonna di spesa o monetaria, vogliamo solo numeri interi
                 if 'spend' in col.lower() or 'amount' in col.lower() or 'cost' in col.lower():
                     data[col] = st.sidebar.slider(f"{col}", int(min_val), int(max_val), int(round(mean_val)), step=1)
@@ -147,7 +147,6 @@ else:
     st.subheader("🔍 Spiegazione della Predizione (SHAP Values)")
     st.info("Questo grafico mostra quali feature hanno spinto la previsione verso l'alto (rischio churn) o verso il basso (fedeltà) per questo specifico cliente.")
 
-    # Estraiamo il modello e il preprocessor dalla pipeline
     # Estraiamo il modello e il preprocessor dalla pipeline
     model_clf = pipeline.named_steps['classifier']
     preprocessor = pipeline.named_steps['preprocessor']
