@@ -183,7 +183,12 @@ else:
                     break
             
             if original_val is not None:
-                clean_feature_names.append(f"{original_val} = {cleaned_name}")
+                # Se la feature contiene "Spend" o "Amount" (o simili), arrotondiamo a 0 o 2 decimali puliti
+                if 'spend' in name.lower() or 'amount' in name.lower() or 'cost' in name.lower():
+                    val_str = f"{original_val:.2f}" # Oppure int(round(original_val)) se vuoi zero decimali fissi
+                else:
+                    val_str = str(original_val)
+                clean_feature_names.append(f"{val_str} = {cleaned_name}")
             else:
                 clean_feature_names.append(f"{transformed_val:.2f} = {cleaned_name}")
 
