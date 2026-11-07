@@ -159,28 +159,33 @@ else:
     except AttributeError:
         raw_feature_names = [f"feature_{i}" for i in range(X_input_transformed.shape[1])]
 
-    # --- COSTRUZIONE ETICHETTE CON VALORI REALI ---
+    # --- COSTRUZIONE ETICHETTE CON VALORI REALI E GESTIONE CATEGORICHE ---
     clean_feature_names = []
     for i, name in enumerate(raw_feature_names):
-        # Valore numerico trasformato per questa specifica feature in questo sample
+        # Valore trasformato (per le categoriche one-hot sarà 0.0 o 1.0)
         transformed_val = X_input_transformed[0, i]
         
-        # Cerchiamo di risalire alla feature originale per recuperare il valore immesso dall'utente
-        original_val = None
-        for col in input_df.columns:
-            if col in name:
-                original_val = input_df[col].values[0]
-                break
-        
-        # Puliamo il nome della feature
         cleaned_name = name.replace("num__", "").replace("cat__", "").replace("_", ": ")
         
-        # Se abbiamo trovato un valore originale (es. numerico o categorico diretto), lo mostriamo, 
-        # altrimenti fallback sul valore trasformato arrotondato
-        if original_val is not None:
-            clean_feature_names.append(f"{original_val} = {cleaned_name}")
+        # Controlliamo se questa feature deriva da una variabile categorica
+        is_categorical_dummy = any(col in name for col in input_df.select_dtypes(include=['object', 'category']).columns)
+        
+        if is_categorical_dummy:
+            # Per le categoriche, mostriamo 1 o 0 in base allo stato attivo/inattivo dell'encoder
+            val_display = int(round(transformed_val))
+            clean_feature_names.append(f"{val_display} = {cleaned_name}")
         else:
-            clean_feature_names.append(f"{transformed_val:.2f} = {cleaned_name}")
+            # Per le numeriche, peschiamo il valore esatto inserito dall'utente nei slider
+            original_val = None
+            for col in input_df.select_dtypes(include=['int64', 'float64']).columns:
+                if col in name:
+                    original_val = input_df[col].values[0]
+                    break
+            
+            if original_val is not None:
+                clean_feature_names.append(f"{original_val} = {cleaned_name}")
+            else:
+                clean_feature_names.append(f"{transformed_val:.2f} = {cleaned_name}")
 
     # Inizializziamo l'explainer e calcoliamo i valori SHAP
     explainer = shap.TreeExplainer(model_clf)
