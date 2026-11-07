@@ -161,6 +161,7 @@ else:
 
     # --- PULIZIA DEI NOMI DELLE FEATURE ---
     # 1. Creiamo etichette pulite unendo il valore reale inserito dall'utente e il nome della feature
+    shap_values = explainer(X_input_transformed)
     clean_feature_names = []
     for col in input_df.columns:
         valore_utente = input_df[col].values[0]
