@@ -193,7 +193,7 @@ else:
         shap.plots.waterfall(shap.Explanation(
             values=shap_values.values[0, :, 1],
             base_values=explainer.expected_value[1],
-            data=X_input_transformed[0],
+            data=None,
             feature_names=clean_feature_names  # Etichette con valori reali!
         ), max_display=10, show=False)
     else:
