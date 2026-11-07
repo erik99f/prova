@@ -146,25 +146,43 @@ else:
     st.info("Questo grafico mostra quali feature hanno spinto la previsione verso l'alto (rischio churn) o verso il basso (fedeltà) per questo specifico cliente.")
 
     # Estraiamo il modello e il preprocessor dalla pipeline
+    # Estraiamo il modello e il preprocessor dalla pipeline
     model_clf = pipeline.named_steps['classifier']
     preprocessor = pipeline.named_steps['preprocessor']
     
     # Trasformiamo l'input dell'utente usando lo stesso preprocessor della pipeline
     X_input_transformed = preprocessor.transform(input_df)
     
-    # Ricaviamo i nomi delle feature trasformate
+    # Ricaviamo i nomi delle feature trasformate dall'encoder/scaler
     try:
         raw_feature_names = preprocessor.get_feature_names_out()
     except AttributeError:
         raw_feature_names = [f"feature_{i}" for i in range(X_input_transformed.shape[1])]
 
-    # --- PULIZIA DEI NOMI DELLE FEATURE ---
+    # --- COSTRUZIONE ETICHETTE CON VALORI REALI ---
     clean_feature_names = []
-    for name in raw_feature_names:
-        cleaned = name.replace("num__", "").replace("cat__", "").replace("_", ": ")
-        clean_feature_names.append(cleaned)
+    for i, name in enumerate(raw_feature_names):
+        # Valore numerico trasformato per questa specifica feature in questo sample
+        transformed_val = X_input_transformed[0, i]
+        
+        # Cerchiamo di risalire alla feature originale per recuperare il valore immesso dall'utente
+        original_val = None
+        for col in input_df.columns:
+            if col in name:
+                original_val = input_df[col].values[0]
+                break
+        
+        # Puliamo il nome della feature
+        cleaned_name = name.replace("num__", "").replace("cat__", "").replace("_", ": ")
+        
+        # Se abbiamo trovato un valore originale (es. numerico o categorico diretto), lo mostriamo, 
+        # altrimenti fallback sul valore trasformato arrotondato
+        if original_val is not None:
+            clean_feature_names.append(f"{original_val} = {cleaned_name}")
+        else:
+            clean_feature_names.append(f"{transformed_val:.2f} = {cleaned_name}")
 
-    # Inizializziamo l'explainer usando il classificatore estratto correttamente
+    # Inizializziamo l'explainer e calcoliamo i valori SHAP
     explainer = shap.TreeExplainer(model_clf)
     shap_values = explainer(X_input_transformed)
 
@@ -176,7 +194,7 @@ else:
             values=shap_values.values[0, :, 1],
             base_values=explainer.expected_value[1],
             data=X_input_transformed[0],
-            feature_names=clean_feature_names
+            feature_names=clean_feature_names  # Etichette con valori reali!
         ), max_display=10, show=False)
     else:
         shap.plots.waterfall(shap_values[0], max_display=10, show=False)
