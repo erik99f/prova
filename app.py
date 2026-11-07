@@ -76,9 +76,9 @@ def get_trained_pipeline():
     model = Pipeline(steps=[
         ('preprocessor', preprocessor),
         ('classifier', RandomForestClassifier(
-        n_estimators=100, 
-        class_weight='balanced', 
-        random_state=42))
+            n_estimators=100, 
+            class_weight='balanced', 
+            random_state=42))
     ])
     
     model.fit(X_train, y_train)
@@ -141,6 +141,7 @@ else:
             else:
                 st.success(f"**Cliente Stabile / Fedele** (Probabilità Churn: {prediction_proba[0][1]*100:.1f}%)")
             st.markdown("---")
+            
     st.subheader("🔍 Spiegazione della Predizione (SHAP Values)")
     st.info("Questo grafico mostra quali feature hanno spinto la previsione verso l'alto (rischio churn) o verso il basso (fedeltà) per questo specifico cliente.")
 
@@ -151,27 +152,23 @@ else:
     # Trasformiamo l'input dell'utente usando lo stesso preprocessor della pipeline
     X_input_transformed = preprocessor.transform(input_df)
     
-    # Poiché l'OneHotEncoder cambia le colonne, ricaviamo i nomi delle feature trasformate
-    # (funziona con le versioni recenti di scikit-learn)
-    # Estraiamo le feature trasformate dal preprocessor
+    # Ricaviamo i nomi delle feature trasformate
     try:
         raw_feature_names = preprocessor.get_feature_names_out()
     except AttributeError:
         raw_feature_names = [f"feature_{i}" for i in range(X_input_transformed.shape[1])]
 
     # --- PULIZIA DEI NOMI DELLE FEATURE ---
-    # 1. Creiamo etichette pulite unendo il valore reale inserito dall'utente e il nome della feature
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer(X_input_transformed)
     clean_feature_names = []
-    for col in input_df.columns:
-        valore_utente = input_df[col].values[0]
-        # Puliamo il nome della colonna
-        col_name = col.replace("num__", "").replace("cat__", "").replace("_", " ")
-        # Creiamo un'etichetta leggibile, es: "2 = Support Calls"
-        clean_feature_names.append(f"{valore_utente} = {col_name}")
+    for name in raw_feature_names:
+        cleaned = name.replace("num__", "").replace("cat__", "").replace("_", ": ")
+        clean_feature_names.append(cleaned)
 
-    # 2. Generiamo il plot passando le nostre etichette formattate
+    # Inizializziamo l'explainer usando il classificatore estratto correttamente
+    explainer = shap.TreeExplainer(model_clf)
+    shap_values = explainer(X_input_transformed)
+
+    # Generiamo il plot
     fig, ax = plt.subplots(figsize=(8, 4))
     
     if len(shap_values.shape) == 3:
@@ -179,7 +176,7 @@ else:
             values=shap_values.values[0, :, 1],
             base_values=explainer.expected_value[1],
             data=X_input_transformed[0],
-            feature_names=clean_feature_names  # Usiamo le etichette con i valori reali!
+            feature_names=clean_feature_names
         ), max_display=10, show=False)
     else:
         shap.plots.waterfall(shap_values[0], max_display=10, show=False)
