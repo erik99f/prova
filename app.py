@@ -111,8 +111,10 @@ else:
                 max_val = float(original_train[col].max())
                 mean_val = float(original_train[col].mean())
                 
-                # Gestione pulita dei numeri interi (es. Età, chiamate)
-                if original_train[col].dropna().apply(lambda x: x.is_integer()).all():
+                # Se è una colonna di spesa o monetaria, diamo un formato pulito
+                if 'spend' in col.lower() or 'amount' in col.lower():
+                    data[col] = st.sidebar.slider(f"{col}", min_val, max_val, float(round(mean_val, 2)), step=0.1)
+                elif original_train[col].dropna().apply(lambda x: x.is_integer()).all():
                     data[col] = st.sidebar.slider(f"{col}", int(min_val), int(max_val), int(mean_val), step=1)
                 else:
                     data[col] = st.sidebar.slider(f"{col}", min_val, max_val, mean_val)
@@ -185,7 +187,7 @@ else:
             if original_val is not None:
                 # Se la feature contiene "Spend" o "Amount" (o simili), arrotondiamo a 0 o 2 decimali puliti
                 if 'spend' in name.lower() or 'amount' in name.lower() or 'cost' in name.lower():
-                    val_str = f"{original_val:.2f}" # Oppure int(round(original_val)) se vuoi zero decimali fissi
+                    val_str = int(round(original_val)) # Oppure int(round(original_val)) se vuoi zero decimali fissi
                 else:
                     val_str = str(original_val)
                 clean_feature_names.append(f"{val_str} = {cleaned_name}")
