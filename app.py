@@ -3,6 +3,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import shap
+import matplotlib as plt
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -138,6 +140,44 @@ else:
                 st.error(f"⚠️ **Alto Rischio di Churn!** (Probabilità: {prediction_proba[0][1]*100:.1f}%)")
             else:
                 st.success(f"**Cliente Stabile / Fedele** (Probabilità Churn: {prediction_proba[0][1]*100:.1f}%)")
+            st.markdown("---")
+    st.subheader("🔍 Spiegazione della Predizione (SHAP Values)")
+    st.info("Questo grafico mostra quali feature hanno spinto la previsione verso l'alto (rischio churn) o verso il basso (fedeltà) per questo specifico cliente.")
+
+    # Estraiamo il modello e il preprocessor dalla pipeline
+    model_clf = pipeline.named_steps['classifier']
+    preprocessor = pipeline.named_steps['preprocessor']
+    
+    # Trasformiamo l'input dell'utente usando lo stesso preprocessor della pipeline
+    X_input_transformed = preprocessor.transform(input_df)
+    
+    # Poiché l'OneHotEncoder cambia le colonne, ricaviamo i nomi delle feature trasformate
+    # (funziona con le versioni recenti di scikit-learn)
+    try:
+        feature_names = preprocessor.get_feature_names_out()
+    except AttributeError:
+        feature_names = [f"feature_{i}" for i in range(X_input_transformed.shape[1])]
+
+    # Inizializziamo l'explainer SHAP per alberi
+    explainer = shap.TreeExplainer(model_clf)
+    shap_values = explainer(X_input_transformed)
+    
+    # Generiamo il plot con Matplotlib e lo mostriamo in Streamlit
+    fig, ax = plt.subplots(figsize=(8, 4))
+    
+    # Se shap_values ha più classi, prendiamo la classe 1 (Churn)
+    if len(shap_values.shape) == 3:
+        # Per classificatori binari, shap_values[:, :, 1] corrisponde alla classe positiva
+        shap.plots.waterfall(shap.Explanation(
+            values=shap_values.values[0, :, 1],
+            base_values=explainer.expected_value[1],
+            data=X_input_transformed[0],
+            feature_names=feature_names
+        ), max_display=10, show=False)
+    else:
+        shap.plots.waterfall(shap_values[0], max_display=10, show=False)
+        
+    st.pyplot(fig, clear_figure=True)
 
     with col2:
         st.subheader("Informazioni sul Progetto")
