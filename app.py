@@ -111,9 +111,9 @@ else:
                 max_val = float(original_train[col].max())
                 mean_val = float(original_train[col].mean())
                 
-                # Se è una colonna di spesa o monetaria, diamo un formato pulito
-                if 'spend' in col.lower() or 'amount' in col.lower():
-                    data[col] = st.sidebar.slider(f"{col}", min_val, max_val, float(round(mean_val, 2)), step=0.1)
+                # Se è una colonna di spesa o monetaria, vogliamo solo numeri interi
+                if 'spend' in col.lower() or 'amount' in col.lower() or 'cost' in col.lower():
+                    data[col] = st.sidebar.slider(f"{col}", int(min_val), int(max_val), int(round(mean_val)), step=1)
                 elif original_train[col].dropna().apply(lambda x: x.is_integer()).all():
                     data[col] = st.sidebar.slider(f"{col}", int(min_val), int(max_val), int(mean_val), step=1)
                 else:
