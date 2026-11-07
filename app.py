@@ -89,7 +89,7 @@ pipeline, feature_columns, train_df = get_trained_pipeline()
 if pipeline is None:
     st.error("⚠️ Attenzione: Impossibile trovare il file `train_data.csv` in nessun percorso conosciuto.")
 else:
-    st.success("✅ Modello addestrato e caricato con successo!")
+    st.success("Modello addestrato e caricato con successo")
 
     # Sidebar per l'input utente dinamico e pulito
     st.sidebar.header("Simula un Cliente")
@@ -160,29 +160,24 @@ else:
         raw_feature_names = [f"feature_{i}" for i in range(X_input_transformed.shape[1])]
 
     # --- PULIZIA DEI NOMI DELLE FEATURE ---
+    # 1. Creiamo etichette pulite unendo il valore reale inserito dall'utente e il nome della feature
     clean_feature_names = []
-    for name in raw_feature_names:
-        # Rimuoviamo i prefissi più comuni generati da scikit-learn
-        cleaned = name.replace("num__", "").replace("cat__", "")
-        # Se vuoi pulire anche i valori delle variabili categoriche (es. "Contract Length_Monthly" -> "Contract Length: Monthly")
-        cleaned = cleaned.replace("_", ": ")
-        clean_feature_names.append(cleaned)
+    for col in input_df.columns:
+        valore_utente = input_df[col].values[0]
+        # Puliamo il nome della colonna
+        col_name = col.replace("num__", "").replace("cat__", "").replace("_", " ")
+        # Creiamo un'etichetta leggibile, es: "2 = Support Calls"
+        clean_feature_names.append(f"{valore_utente} = {col_name}")
 
-    # Inizializziamo l'explainer SHAP per alberi
-    explainer = shap.TreeExplainer(model_clf)
-    shap_values = explainer(X_input_transformed)
-    
-    # Generiamo il plot con Matplotlib e lo mostriamo in Streamlit
+    # 2. Generiamo il plot passando le nostre etichette formattate
     fig, ax = plt.subplots(figsize=(8, 4))
     
-    # Se shap_values ha più classi, prendiamo la classe 1 (Churn)
     if len(shap_values.shape) == 3:
-        # Per classificatori binari, shap_values[:, :, 1] corrisponde alla classe positiva
         shap.plots.waterfall(shap.Explanation(
             values=shap_values.values[0, :, 1],
             base_values=explainer.expected_value[1],
             data=X_input_transformed[0],
-            feature_names=clean_feature_names
+            feature_names=clean_feature_names  # Usiamo le etichette con i valori reali!
         ), max_display=10, show=False)
     else:
         shap.plots.waterfall(shap_values[0], max_display=10, show=False)
